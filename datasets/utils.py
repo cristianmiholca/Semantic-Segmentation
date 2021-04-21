@@ -48,12 +48,12 @@ def load_dataset(dataset):
 
 def get_dataset(dataset, mode):
     image_transform = TF.Compose([
-        TF.Resize((args.image_width, args.image_height)),
+        TF.Resize((args.width, args.height)),
         TF.ToTensor()
     ])
     target_transform = TF.Compose([
         TF.ToPILImage(),
-        TF.Resize((args.image_width, args.image_height)),
+        TF.Resize((args.width, args.height)),
         TF.ToTensor()
     ])
     return dataset(

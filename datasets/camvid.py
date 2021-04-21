@@ -20,7 +20,7 @@ class CamVid(data.Dataset):
     class_labels_file = 'class_dict.csv'
 
     # TODO use class_dict here
-    color_encoding = OrderedDict([
+    class_encoding = OrderedDict([
         ('sky', (128, 128, 128)),
         ('building', (128, 0, 0)),
         ('pole', (192, 192, 128)),
