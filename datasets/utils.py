@@ -1,5 +1,12 @@
 import os
 
+import torch.utils.data
+import torchvision.transforms as TF
+from commons.arguments import get_arguments
+import torch.utils.data as data
+
+args = get_arguments()
+
 
 def name_cond(name_filter: str):
     if name_filter is None:
@@ -26,3 +33,41 @@ def get_files(dir_path, name_filter=None, extension_filter=None):
                 full_path = os.path.join(path, f)
                 filtered_files.append(full_path)
     return filtered_files
+
+
+def load_dataset(dataset):
+    train_set = get_dataset(dataset, 'train')
+    val_set = get_dataset(dataset, 'val')
+    test_set = get_dataset(dataset, 'test')
+    train_loader = get_dataloader(train_set)
+    val_loader = get_dataloader(val_set)
+    test_loader = get_dataloader(test_set)
+    class_encoding = train_set.class_encoding
+    return (train_loader, val_loader, test_loader), class_encoding
+
+
+def get_dataset(dataset, mode):
+    image_transform = TF.Compose([
+        TF.Resize((args.image_width, args.image_height)),
+        TF.ToTensor()
+    ])
+    target_transform = TF.Compose([
+        TF.ToPILImage(),
+        TF.Resize((args.image_width, args.image_height)),
+        TF.ToTensor()
+    ])
+    return dataset(
+        root_dir=args.dataset_dir,
+        mode=mode,
+        image_transform=image_transform,
+        label_transform=target_transform
+    )
+
+
+def get_dataloader(dataset, shuffle=True):
+    return data.DataLoader(
+        dataset=dataset,
+        batch_size=args.batch_size,
+        shuffle=shuffle,
+        num_workers=args.workers
+    )
