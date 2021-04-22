@@ -13,9 +13,9 @@ args = get_arguments()
 device = torch.device(args.device)
 
 best_result = {
-    'iou': None,
-    'miou': None,
-    'epoch': None
+    'iou': [],
+    'miou': 0.0,
+    'epoch': 0
 }
 
 
