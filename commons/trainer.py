@@ -19,6 +19,7 @@ class Trainer:
             self.model.cuda()
         self.model.train()
         epoch_loss = 0.0
+        self.metric.reset()
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
             target = batch[1].long().to(self.device)
@@ -29,6 +30,5 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
             epoch_loss += loss.item()
-            iou = IoU.iou(pred, target)
-            print(iou)
-        return epoch_loss / len(self.data_loader)
+            self.metric.add(pred.detach(), target.detach())
+        return epoch_loss / len(self.data_loader), self.metric.value()

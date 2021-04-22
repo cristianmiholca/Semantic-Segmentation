@@ -1,18 +1,45 @@
 import numpy as np
-import torch
+
+from metrics.confusionmatrix import ConfusionMatrix
 
 
-def iou_np(prediction, target):
-    intersection = np.logical_and(target, prediction)
-    union = np.logical_or(target, prediction)
-    iou_score = np.sum(intersection) / np.sum(union)
-    return iou_score
+class IoU:
+    def __init__(self, num_classes, normalized=False, ignore_index=None):
+        self.conf_matrix = ConfusionMatrix(num_classes, normalized)
+        if ignore_index is None:
+            self.ignore_index = None
+        elif isinstance(ignore_index, int):
+            self.ignore_index = (ignore_index,)
+        else:
+            try:
+                self.ignore_index = tuple(ignore_index)
+            except TypeError:
+                raise ValueError('[IoU]: ignore_index must be an int or iterable')
 
+    def reset(self):
+        self.conf_matrix.reset()
 
-def iou(predictions: torch.Tensor, targets: torch.Tensor, smooth=1e-6):
-    predictions = torch.argmax(predictions, dim=1)  # from shape [B, N, H, W] => [B, H, W]
-    intersection = (predictions & targets).float().sum((1, 2))
-    union = (predictions | targets).float().sum((1, 2))
-    iou = (intersection + smooth) / (union + smooth)
-    thresholded = torch.clamp(20 * (iou - 0.5), 0, 10).ceil() / 10
-    return thresholded
+    def add(self, predicted, target):
+        assert predicted.size(0) == target.size(0), \
+            '[IoU]: Different batch sizes for predicted and target'
+        assert predicted.dim() == 3 or predicted.dim() == 4, \
+            "[IoU]: Predictions must be of dimension (B, H, W) or (B, N, H, W)"
+        assert target.dim() == 3 or target.dim() == 4, \
+            "[IoU]: Targets must be of dimension (B, H, W) or (B, N, H, W)"
+        if predicted.dim() == 4:
+            _, predicted = predicted.max(1)
+        else:
+            _, target = target.max(1)
+        self.conf_matrix.add(predicted.view(-1), target.view(-1))
+
+    def value(self):
+        conf_matrix = self.conf_matrix
+        if self.ignore_index is not None:
+            conf_matrix[:, self.ignore_index] = 0
+            conf_matrix[self.ignore_index, :] = 0
+        tp = np.diag(conf_matrix)
+        fp = np.sum(conf_matrix, 0) - tp
+        fn = np.sum(conf_matrix, 1) - tp
+        with np.errstate(divide='ignore', invalid='ignore'):
+            iou = tp / (tp + fp + fn)
+        return iou, np.nanmean(iou)
