@@ -28,3 +28,13 @@ def train(train_loader, val_loader, class_encoding):
     return model
 
 
+def test(model, test_loader, class_encoding):
+    num_classes = len(class_encoding)
+    criterion = nn.CrossEntropyLoss()
+    tester = Tester(model=model, data_loader=test_loader, criterion=criterion, metric=None, device=device)
+    loss = tester.run_epoch()
+    print("[Test: loss: {0:.4f}".format(loss))
+
+
+
+
