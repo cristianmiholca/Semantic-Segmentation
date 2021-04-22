@@ -9,7 +9,10 @@ def iou_np(prediction, target):
     return iou_score
 
 
-def iou(prediction: torch.Tensor, target: torch.Tensor):
-    print(prediction.shape)
-    print(target.shape)
-    return 0
+def iou(predictions: torch.Tensor, targets: torch.Tensor, smooth=1e-6):
+    predictions = torch.argmax(predictions, dim=1)  # from shape [B, N, H, W] => [B, H, W]
+    intersection = (predictions & targets).float().sum((1, 2))
+    union = (predictions | targets).float().sum((1, 2))
+    iou = (intersection + smooth) / (union + smooth)
+    thresholded = torch.clamp(20 * (iou - 0.5), 0, 10).ceil() / 10
+    return thresholded
