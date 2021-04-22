@@ -33,7 +33,7 @@ class IoU:
         self.conf_matrix.add(predicted.view(-1), target.view(-1))
 
     def value(self):
-        conf_matrix = self.conf_matrix
+        conf_matrix = self.conf_matrix.value()
         if self.ignore_index is not None:
             conf_matrix[:, self.ignore_index] = 0
             conf_matrix[self.ignore_index, :] = 0

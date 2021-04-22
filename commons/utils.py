@@ -12,6 +12,12 @@ import torch.optim as optim
 args = get_arguments()
 device = torch.device(args.device)
 
+best_result = {
+    'iou': None,
+    'miou': None,
+    'epoch': None
+}
+
 
 def train(train_loader, val_loader, class_encoding):
     num_classes = len(class_encoding)
@@ -27,6 +33,9 @@ def train(train_loader, val_loader, class_encoding):
         print("[Epoch: {0:d}] Training".format(epoch))
         epoch_loss, (iou, miou) = trainer.run_epoch()
         print("[Epoch: {0:d} mIoU: {1:.4f}".format(epoch, miou))
+        if miou > best_result['miou']:
+            best_result['epoch'] = epoch
+            best_result['iou'] = iou
         print("[Epoch: {0:d} Avg loss: {1:.4f}".format(epoch, epoch_loss))
     return model
 
