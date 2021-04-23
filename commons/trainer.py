@@ -1,6 +1,5 @@
 import torch
-from tqdm import tqdm
-from metrics import iou as IoU
+from tqdm.auto import tqdm
 
 
 class Trainer:

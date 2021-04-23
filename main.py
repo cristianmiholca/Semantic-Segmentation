@@ -17,3 +17,4 @@ if __name__ == '__main__':
     data_loaders, class_encoding = dataset_utils.load_dataset(dataset)
     train_loader, val_loader, test_loader = data_loaders
     model = commons_utils.train(train_loader, val_loader, class_encoding)
+    commons_utils.test(model, test_loader, class_encoding)

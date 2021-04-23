@@ -1,5 +1,5 @@
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 class Tester:
@@ -12,15 +12,17 @@ class Tester:
 
     def run_epoch(self, use_tqdm=True):
         loop = tqdm(self.data_loader) if use_tqdm else self.data_loader
+        if self.device.type == 'cuda':
+            self.model.cuda()
         self.model.eval()
         epoch_loss = 0.0
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
             target = batch[1].long().to(self.device)
-            # target = torch.argmax(target, 1)
+            target = torch.argmax(target, 1)
             with torch.no_grad():
                 pred = self.model(data)
                 loss = self.criterion(pred, target)
             epoch_loss += loss.item()
 
-        return epoch_loss / len(self.data_loader)
+        return epoch_loss / len(self.data_loader), self.metric.value()

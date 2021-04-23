@@ -1,5 +1,5 @@
 import torch
-from tqdm.notebook import tqdm_notebook as tqdm
+from tqdm.auto import tqdm
 
 from commons.arguments import get_arguments
 import models.utils as model_utils
@@ -20,6 +20,7 @@ best_result = {
 
 
 def train(train_loader, val_loader, class_encoding):
+    print("\nTraining\n")
     num_classes = len(class_encoding)
     model = model_utils.get_model(num_classes, pretrained=True)
     print(model)
@@ -32,21 +33,19 @@ def train(train_loader, val_loader, class_encoding):
     for epoch in tqdm(range(0, args.epochs)):
         print("[Epoch: {0:d}] Training".format(epoch))
         epoch_loss, (iou, miou) = trainer.run_epoch()
-        print("[Epoch: {0:d} mIoU: {1:.4f}".format(epoch, miou))
+        print("[Epoch: {0:d}] mIoU: {1:.4f}".format(epoch, miou))
         if miou > best_result['miou']:
             best_result['epoch'] = epoch
             best_result['iou'] = iou
-        print("[Epoch: {0:d} Avg loss: {1:.4f}".format(epoch, epoch_loss))
+        print("[Epoch: {0:d}] Avg loss: {1:.4f}".format(epoch, epoch_loss))
     return model
 
 
 def test(model, test_loader, class_encoding):
+    print("\nTesting\n")
     num_classes = len(class_encoding)
     criterion = nn.CrossEntropyLoss()
-    tester = Tester(model=model, data_loader=test_loader, criterion=criterion, metric=None, device=device)
+    metric = IoU(num_classes=num_classes, ignore_index=None)
+    tester = Tester(model=model, data_loader=test_loader, criterion=criterion, metric=metric, device=device)
     loss = tester.run_epoch()
-    print("[Test: loss: {0:.4f}".format(loss))
-
-
-
-
+    print("[Test] loss: {0:.4f}".format(loss))
