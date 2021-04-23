@@ -1,5 +1,5 @@
 import torch
-from tqdm import tqdm
+from tqdm.notebook import tqdm_notebook as tqdm
 
 from commons.arguments import get_arguments
 import models.utils as model_utils
