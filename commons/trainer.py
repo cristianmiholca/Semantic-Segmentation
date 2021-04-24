@@ -1,5 +1,5 @@
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 
 class Trainer:
@@ -18,14 +18,16 @@ class Trainer:
             self.model.cuda()
         self.model.train()
         epoch_loss = 0.0
+        self.metric.reset()
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
             target = batch[1].long().to(self.device)
-            # target = torch.argmax(target, 1)
+            target = torch.argmax(target, 1)
             pred = self.model(data)
             loss = self.criterion(pred, target)
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
             epoch_loss += loss.item()
-        return epoch_loss / len(self.data_loader)
+            self.metric.add(pred.detach(), target.detach())
+        return epoch_loss / len(self.data_loader), self.metric.value()

@@ -58,6 +58,8 @@ class CamVid(data.Dataset):
             test_dir_labeled = os.path.join(root_dir, self.test_folder_labeled)
             self.test_data = utils.get_files(test_dir)
             self.test_labels = utils.get_files(test_dir_labeled)
+            print(utils.get_files(test_dir))
+            print(utils.get_files(test_dir_labeled))
         else:
             raise RuntimeError("Unexpected dataset mode. Supported modes are: train, val and test.")
 
@@ -75,7 +77,7 @@ class CamVid(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         if self.label_transform is not None:
-            label = self.label_transform(img)
+            label = self.label_transform(label)
         return img, label
 
     def __len__(self):
