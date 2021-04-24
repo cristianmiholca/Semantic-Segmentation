@@ -4,6 +4,7 @@ import torch.utils.data
 import torchvision.transforms as TF
 from commons.arguments import get_arguments
 import torch.utils.data as data
+import transforms as ext_transforms
 
 args = get_arguments()
 
@@ -53,8 +54,8 @@ def get_dataset(dataset, mode):
     ])
     target_transform = TF.Compose([
         # TF.ToPILImage(),
-        TF.Resize((args.width, args.height)),
-        TF.ToTensor()
+        TF.Resize((args.width, args.height), TF.InterpolationMode.NEAREST),
+        ext_transforms.PILToLongTensor()
     ])
     return dataset(
         root_dir=args.dataset_dir,

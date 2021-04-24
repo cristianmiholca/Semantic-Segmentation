@@ -4,10 +4,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
+import torchvision.transforms as transforms
 from tqdm.auto import tqdm
 
 import models.utils as model_utils
-import torchvision.transforms as transforms
 import transforms as ext_transforms
 from commons.arguments import get_arguments
 from commons.tester import Tester
@@ -37,17 +37,22 @@ def train(train_loader, val_loader, class_encoding):
     val = Tester(model=model, data_loader=val_loader, criterion=criterion, metric=metric, device=device)
     for epoch in tqdm(range(0, args.epochs)):
         print("[Epoch: {0:d}] Training".format(epoch))
-        epoch_loss, (iou, miou) = trainer.run_epoch()
-        print("[Epoch: {0:d}] mIoU: {1:.4f}".format(epoch, miou))
-        if miou > best_result['miou']:
-            best_result['miou'] = miou
-            best_result['epoch'] = epoch
-            best_result['iou'] = iou
-            print(best_result)
-        print("[Epoch: {0:d}] Avg loss: {1:.4f}".format(epoch, epoch_loss))
+        loss, (iou, miou) = trainer.run_epoch()
+        print("[Epoch: {0:d}] Avg Loss:{1:.4f} MIoU: {2:.4f}".format(epoch, loss, miou))
+        print(iou)
+        if (epoch + 1) % 10 == 0 or epoch + 1 == args.epochs:
+            print("[Epoch: {0:d}] Validation".format(epoch))
+            loss, (iou, miou) = val.run_epoch()
+            print("[Epoch: {0:d}] Avg loss: {1:.4f} MIoU: {2:.4f}".format(epoch, loss, miou))
+            if miou > best_result['miou']:
+                best_result['miou'] = miou
+                best_result['epoch'] = epoch
+                best_result['iou'] = iou
+                print(best_result)
     return model
 
 
+# TODO complete test method
 def test(model, test_loader, class_encoding):
     print("\nTesting\n")
     num_classes = len(class_encoding)
