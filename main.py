@@ -4,9 +4,7 @@ import commons.utils as commons_utils
 
 from commons.arguments import get_arguments
 
-
 args = get_arguments()
-
 
 if __name__ == '__main__':
     print(torch.__version__)

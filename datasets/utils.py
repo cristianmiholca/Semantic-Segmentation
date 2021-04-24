@@ -52,7 +52,7 @@ def get_dataset(dataset, mode):
         TF.ToTensor()
     ])
     target_transform = TF.Compose([
-        TF.ToPILImage(),
+        # TF.ToPILImage(),
         TF.Resize((args.width, args.height)),
         TF.ToTensor()
     ])

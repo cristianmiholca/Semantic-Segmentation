@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from metrics.confusionmatrix import ConfusionMatrix
 
@@ -32,7 +33,7 @@ class IoU:
             _, target = target.max(1)
         self.conf_matrix.add(predicted.view(-1), target.view(-1))
 
-    def value(self):
+    def value(self, smooth=1e-6):
         conf_matrix = self.conf_matrix.value()
         if self.ignore_index is not None:
             conf_matrix[:, self.ignore_index] = 0
