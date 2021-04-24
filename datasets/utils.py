@@ -55,7 +55,7 @@ def get_dataset(dataset, mode):
     target_transform = TF.Compose([
         # TF.ToPILImage(),
         TF.Resize((args.width, args.height), TF.InterpolationMode.NEAREST),
-        ext_transforms.PILToLongTensor()
+        TF.PILToTensor()
     ])
     return dataset(
         root_dir=args.dataset_dir,
