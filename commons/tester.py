@@ -16,6 +16,7 @@ class Tester:
             self.model.cuda()
         self.model.eval()
         epoch_loss = 0.0
+        self.metric.reset()
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
             target = batch[1].long().to(self.device)

@@ -39,6 +39,7 @@ def train(train_loader, val_loader, class_encoding):
         print("[Epoch: {0:d}] Training".format(epoch))
         loss, (iou, miou) = trainer.run_epoch()
         print("[Epoch: {0:d}] Avg Loss:{1:.4f} MIoU: {2:.4f}".format(epoch, loss, miou))
+        print(iou)
         if (epoch + 1) % 10 == 0 or epoch + 1 == args.epochs:
             print("[Epoch: {0:d}] Validation".format(epoch))
             loss, (iou, miou) = val.run_epoch()
