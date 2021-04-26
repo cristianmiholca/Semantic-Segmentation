@@ -21,7 +21,7 @@ class Trainer:
         self.metric.reset()
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
-            target = batch[1].long().to(self.device)
+            target = batch[1].to(self.device)
             target = torch.argmax(target, 1)
             pred = self.model(data)
             loss = self.criterion(pred, target)
