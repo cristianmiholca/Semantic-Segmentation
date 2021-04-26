@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -49,6 +51,7 @@ def train(train_loader, val_loader, class_encoding):
                 best_result['epoch'] = epoch
                 best_result['iou'] = iou
                 print(best_result)
+                save_checkpoint(model, optimizer, epoch, miou, args)
     return model
 
 
@@ -98,6 +101,7 @@ def imshow_batch(images, labels):
 
     plt.show()
 
+
 # def show_results(model: nn.Module, data, targets):
 #     data = data.to(device)
 #     model.eval()
@@ -117,3 +121,39 @@ def imshow_batch(images, labels):
 #     ax1.imshow(np.transpose(images, (1, 2, 0)))
 #     ax2.imshow(np.transpose(targets, (1, 2, 0)))
 #     plt.show()
+
+def save_checkpoint(model, optimizer, epoch, miou, args):
+    name = args.name
+    save_dir = args.save_dir
+    if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+    model_path = os.path.join(save_dir, name)
+    checkpoint = {
+        'epoch': epoch,
+        'miou': miou,
+        'model': model.state_dict(),
+        'optimizer': optimizer.state_dict()
+    }
+    torch.save(checkpoint, model_path)
+    args_file = os.path.join(save_dir, name + 'args.txt')
+    with open(args_file, 'w') as args_file:
+        sorted_args = sorted(vars(args))
+        for arg in sorted_args:
+            entry = "{0}: {1}\n".format(arg, getattr(args, arg))
+            args_file.write(entry)
+        args_file.write("Epoch: {0}\n".format(epoch))
+        args_file.write("Mean IoU: {0}\n".format(miou))
+
+
+def load_checkpoint(model: nn.Module, optimizer: optim.Optimizer, save_dir, name):
+    assert os.path.isdir(save_dir), \
+        '\"{0}\" directory does not exist'.format(save_dir)
+    model_path = os.path.join(save_dir, name)
+    assert os.path.isfile(model_path), \
+        '\"{0}\" file does not exist'.format(model_path)
+    checkpoint = torch.load(model_path)
+    model.load_state_dict(checkpoint['model'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    epoch = checkpoint['epoch']
+    miou = checkpoint['miou']
+    return model, optimizer, epoch, miou
