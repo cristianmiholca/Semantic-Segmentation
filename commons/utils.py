@@ -36,14 +36,12 @@ def train(train_loader, val_loader, class_encoding):
                       device=device)
     val = Tester(model=model, data_loader=val_loader, criterion=criterion, metric=metric, device=device)
     for epoch in tqdm(range(0, args.epochs)):
-        print("[Epoch: {0:d}] Training".format(epoch))
         loss, (iou, miou) = trainer.run_epoch()
-        print("[Epoch: {0:d}] Avg Loss:{1:.4f} MIoU: {2:.4f}".format(epoch, loss, miou))
+        print("[Epoch: {0:d} | Training] Avg Loss:{1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
         print(iou)
         if (epoch + 1) % 10 == 0 or epoch + 1 == args.epochs:
-            print("[Epoch: {0:d}] Validation".format(epoch))
             loss, (iou, miou) = val.run_epoch()
-            print("[Epoch: {0:d}] Avg loss: {1:.4f} MIoU: {2:.4f}".format(epoch, loss, miou))
+            print("[Epoch: {0:d} | Validation] Avg loss: {1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
             if miou > best_result['miou']:
                 best_result['miou'] = miou
                 best_result['epoch'] = epoch
@@ -60,17 +58,15 @@ def test(model, test_loader, class_encoding):
     metric = IoU(num_classes=num_classes, ignore_index=None)
     tester = Tester(model=model, data_loader=test_loader, criterion=criterion, metric=metric, device=device)
     loss, (iou, miou) = tester.run_epoch()
-    print("[Test] loss: {0:.4f}".format(loss))
+    print("[Test] loss: {0:.4f} | MIoU: {1:.4f}".format(loss, miou))
     # TODO show results and add plt.show() in main (if not works by default)
     data, targets = iter(test_loader).__next__()
     # imshow_batch(data[0], targets[0])
-    predict(model, data, targets, class_encoding)
+    predict(model, data, class_encoding)
 
 
-def predict(model, images, targets, class_encoding):
+def predict(model, images, class_encoding):
     images = images.to(device)
-
-    # Make predictions!
     model.eval()
     with torch.no_grad():
         predictions = model(images)
@@ -91,29 +87,7 @@ def batch_transform(batch, transform):
 def imshow_batch(images, labels):
     images = torchvision.utils.make_grid(images).numpy()
     labels = torchvision.utils.make_grid(labels).numpy()
-
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 7))
     ax1.imshow(np.transpose(images, (1, 2, 0)))
     ax2.imshow(np.transpose(labels, (1, 2, 0)))
-
     plt.show()
-
-# def show_results(model: nn.Module, data, targets):
-#     data = data.to(device)
-#     model.eval()
-#     with torch.no_grad():
-#         pred = model(data)
-#     print(pred.shape)
-#     print(pred)
-#
-#
-#
-#
-# def imshow_batch(images, targets):
-#     images = torchvision.utils.make_grid(images).numpy()
-#     targets = torchvision.utils.make_grid(targets).numpy()
-#
-#     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 7))
-#     ax1.imshow(np.transpose(images, (1, 2, 0)))
-#     ax2.imshow(np.transpose(targets, (1, 2, 0)))
-#     plt.show()
