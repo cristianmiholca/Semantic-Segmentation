@@ -24,4 +24,5 @@ class Tester:
                 pred = self.model(data)
                 loss = self.criterion(pred, target)
             epoch_loss += loss.item()
+            self.metric.add(pred.detach(), target.detach())
         return epoch_loss / len(self.data_loader), self.metric.value()

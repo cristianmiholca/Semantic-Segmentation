@@ -1,10 +1,10 @@
 import os
 
 import torch.utils.data
-import torchvision.transforms as TF
-from commons.arguments import get_arguments
 import torch.utils.data as data
-import transforms as ext_transforms
+import torchvision.transforms as TF
+
+from commons.arguments import get_arguments
 
 args = get_arguments()
 
@@ -26,14 +26,13 @@ def ext_cond(ext_filter: str):
 def get_files(dir_path, name_filter=None, extension_filter=None):
     if not os.path.isdir(dir_path):
         raise RuntimeError("\"{0}\" is not a directory.".format(dir_path))
-    filtered_files = []
+    result = []
     for path, _, files in os.walk(dir_path):
         files.sort()
         for f in files:
-            if name_cond(f) and ext_cond(f):
-                full_path = os.path.join(path, f)
-                filtered_files.append(full_path)
-    return filtered_files
+            full_path = os.path.join(path, f)
+            result.append(full_path)
+    return result
 
 
 def load_dataset(dataset):
@@ -52,15 +51,15 @@ def get_dataset(dataset, mode):
         TF.Resize((args.width, args.height)),
         TF.ToTensor()
     ])
+    # TODO POSSIBLE PROBLEM: PILToTensor transform
     target_transform = TF.Compose([
-        # TF.ToPILImage(),
         TF.Resize((args.width, args.height), TF.InterpolationMode.NEAREST),
         TF.PILToTensor()
     ])
     return dataset(
         root_dir=args.dataset_dir,
         mode=mode,
-        image_transform=image_transform,
+        data_transform=image_transform,
         label_transform=target_transform
     )
 
@@ -78,9 +77,10 @@ def get_dataloader(dataset, shuffle=True):
 def get_target_mask(target, class_encoding):
     colors = class_encoding.values()
     mapping = {tuple(c): t for c, t in zip(colors, range(len(colors)))}
-    mask = torch.zeros(512, 512, dtype=torch.long)
+    target_size = list(target.size())
+    mask = torch.zeros(target_size[1], target_size[2], dtype=torch.long)
     for k in mapping:
         idx = (target == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2))
-        validx = (idx.sum(0) == 3)  # Check that all channels match
+        validx = (idx.sum(0) == 3)
         mask[validx] = torch.tensor(mapping[k], dtype=torch.long)
     return mask
