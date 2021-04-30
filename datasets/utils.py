@@ -70,5 +70,17 @@ def get_dataloader(dataset, shuffle=True):
         dataset=dataset,
         batch_size=args.batch_size,
         shuffle=shuffle,
-        num_workers=args.workers
+        num_workers=args.workers,
+        drop_last=True
     )
+
+
+def get_target_mask(target, class_encoding):
+    colors = class_encoding.values()
+    mapping = {tuple(c): t for c, t in zip(colors, range(len(colors)))}
+    mask = torch.zeros(512, 512, dtype=torch.long)
+    for k in mapping:
+        idx = (target == torch.tensor(k, dtype=torch.uint8).unsqueeze(1).unsqueeze(2))
+        validx = (idx.sum(0) == 3)  # Check that all channels match
+        mask[validx] = torch.tensor(mapping[k], dtype=torch.long)
+    return mask

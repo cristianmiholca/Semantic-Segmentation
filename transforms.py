@@ -12,15 +12,36 @@ class PILToLongTensor(object):
 
     """
 
-    def __call__(self, pic: Image.Image):
-        img = torch.ByteTensor(torch.FloatStorage.byte().from_buffer(pic.tobytes()))
+    def __call__(self, pic):
+        """Performs the conversion from a ``PIL Image`` to a ``torch.LongTensor``.
+
+        Keyword arguments:
+        - pic (``PIL.Image``): the image to convert to ``torch.LongTensor``
+
+        Returns:
+        A ``torch.LongTensor``.
+
+        """
+        if not isinstance(pic, Image.Image):
+            raise TypeError("pic should be PIL Image. Got {}".format(
+                type(pic)))
+
+        # handle numpy array
+        if isinstance(pic, np.ndarray):
+            img = torch.from_numpy(pic.transpose((2, 0, 1)))
+            # backward compatibility
+            return img.long()
+
+        # Convert PIL image to ByteTensor
+        img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
 
         # Reshape tensor
         nchannel = len(pic.mode)
         img = img.view(pic.size[1], pic.size[0], nchannel)
 
         # Convert to long and squeeze the channels
-        return img.transpose(0, 1).transpose(0, 2).contiguous().long().squeeze_()
+        return img.transpose(0, 1).transpose(0,
+                                             2).contiguous().long().squeeze_()
 
 
 class LongTensorToRGBPIL(object):

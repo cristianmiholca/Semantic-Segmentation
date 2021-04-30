@@ -20,7 +20,6 @@ class Tester:
         for idx, batch in enumerate(loop):
             data = batch[0].to(self.device)
             target = batch[1].to(self.device)
-            target = torch.argmax(target, 1)
             with torch.no_grad():
                 pred = self.model(data)
                 loss = self.criterion(pred, target)
