@@ -1,4 +1,16 @@
+from argparse import ArgumentTypeError
 from argparse import ArgumentParser
+
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('true', 't'):
+        return True
+    elif v.lower() in ('false', 'f'):
+        return False
+    else:
+        raise ArgumentTypeError('Boolean value expected.')
 
 
 def get_arguments():
@@ -56,8 +68,10 @@ def get_arguments():
         help='The model to use. Default: unet')
     parser.add_argument(
         '--tqdm',
-        choices=['True', 'False'],
-        default='True',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=True,
         help='True if should use tqdm. Default: True')
 
     # Arguments for saving the model
@@ -71,4 +85,21 @@ def get_arguments():
         type=str,
         default='checkpoint',
         help="The directory where models are saved. Default: checkpoint")
+    parser.add_argument(
+        '--load-model',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='True if should load a saved model. Default: False'
+    )
+    parser.add_argument(
+        '--resume-training',
+        type=str2bool,
+        nargs='?',
+        const=True,
+        default=False,
+        help='True if should resume training a saved model. Default: False'
+    )
+
     return parser.parse_args()

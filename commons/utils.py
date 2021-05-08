@@ -1,10 +1,12 @@
+import os.path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
+from torch import optim
 from tqdm.auto import tqdm
 
 import models.utils as model_utils
@@ -13,55 +15,58 @@ from commons.arguments import get_arguments
 from commons.tester import Tester
 from commons.trainer import Trainer
 from metrics.iou import IoU
+from commons.checkpoint import save_checkpoint, load_checkpoint
 
 args = get_arguments()
 device = torch.device(args.device)
 
-best_result = {
-    'iou': [],
-    'miou': 0.0,
-    'epoch': 0
-}
 
-
-def train(train_loader, val_loader, class_encoding):
-    print("\nTraining\n")
-    num_classes = len(class_encoding)
-    model = model_utils.get_model(num_classes, pretrained=True)
+def train(model, optimizer, criterion, metric, train_loader, val_loader, class_encoding):
+    print("\nTraining...\n")
     print(model)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
-    metric = IoU(num_classes=num_classes, ignore_index=None)
     trainer = Trainer(model=model, data_loader=train_loader, optimizer=optimizer, criterion=criterion, metric=metric,
                       device=device)
     val = Tester(model=model, data_loader=val_loader, criterion=criterion, metric=metric, device=device)
-    for epoch in tqdm(range(0, args.epochs)):
+    if args.resume_training:
+        model, optimizer, start_epoch, best_miou = load_checkpoint(
+            model, optimizer, args.save_dir, args.name)
+        print("Resuming from model: Start epoch = {0} "
+              "| Best mean IoU = {1:.4f}".format(start_epoch, best_miou))
+    else:
+        start_epoch = 0
+        best_miou = 0
+    best_result = {
+        'iou': [],
+        'miou': best_miou,
+        'epoch': start_epoch
+    }
+    for epoch in tqdm(range(start_epoch, args.epochs)):
+        print("[Epoch: {0:d} | Training] Start epoch...".format(epoch))
         loss, (iou, miou) = trainer.run_epoch()
-        print("[Epoch: {0:d} | Training] Avg Loss:{1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
-        print(iou)
+        print("[Epoch: {0:d} | Training] Finish epoch...\n"
+              "Results: Avg Loss:{1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
+        print(dict_ious(class_encoding, iou))
         if (epoch + 1) % 10 == 0 or epoch + 1 == args.epochs:
+            print("[Epoch: {0:d} | Validation] Start epoch...".format(epoch))
             loss, (iou, miou) = val.run_epoch()
-            print("[Epoch: {0:d} | Validation] Avg loss: {1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
+            print(dict_ious(class_encoding, iou))
+            print("[Epoch: {0:d} | Validation] Finish epoch...\n"
+                  "Results: Avg loss: {1:.4f} | MIoU: {2:.4f}".format(epoch, loss, miou))
             if miou > best_result['miou']:
                 best_result['miou'] = miou
                 best_result['epoch'] = epoch
                 best_result['iou'] = iou
-                print(best_result)
+                save_checkpoint(model, optimizer, epoch, miou, args)
     return model
 
 
-# TODO complete test method
-def test(model, test_loader, class_encoding):
-    print("\nTesting\n")
-    num_classes = len(class_encoding)
-    criterion = nn.CrossEntropyLoss()
-    metric = IoU(num_classes=num_classes, ignore_index=None)
+def test(model, criterion, metric, test_loader, class_encoding):
+    print("\nTesting...\n")
     tester = Tester(model=model, data_loader=test_loader, criterion=criterion, metric=metric, device=device)
     loss, (iou, miou) = tester.run_epoch()
-    print("[Test] loss: {0:.4f} | MIoU: {1:.4f}".format(loss, miou))
-    # TODO show results and add plt.show() in main (if not works by default)
+    print(dict_ious(iou))
+    print("[Test] Avg loss: {0:.4f} | MIoU: {1:.4f}".format(loss, miou))
     data, targets = iter(test_loader).__next__()
-    # imshow_batch(data[0], targets[0])
     predict(model, data, class_encoding)
 
 
@@ -71,12 +76,13 @@ def predict(model, images, class_encoding):
     with torch.no_grad():
         predictions = model(images)
     _, predictions = torch.max(predictions.data, 1)
-    label_to_rgb = transforms.Compose([
+    pred_transform = transforms.Compose([
         ext_transforms.LongTensorToRGBPIL(class_encoding),
         transforms.ToTensor()
     ])
-    color_predictions = batch_transform(predictions.cpu(), label_to_rgb)
-    imshow_batch(images.detach().cpu(), color_predictions)
+    # predictions = batch_transform(predictions.cpu(), label_to_rgb)
+    imshow_batch(images.detach().cpu(), predictions.detach().cpu(), pred_transform)
+    # save_results(images.detach().cpu(), predictions.detach().cpu())
 
 
 def batch_transform(batch, transform):
@@ -84,10 +90,41 @@ def batch_transform(batch, transform):
     return torch.stack(transf_slices)
 
 
-def imshow_batch(images, labels):
+def imshow_batch(images, predictions, pred_transform):
+    predictions = batch_transform(predictions, pred_transform)
     images = torchvision.utils.make_grid(images).numpy()
-    labels = torchvision.utils.make_grid(labels).numpy()
+    predictions = torchvision.utils.make_grid(predictions).numpy()
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 7))
     ax1.imshow(np.transpose(images, (1, 2, 0)))
-    ax2.imshow(np.transpose(labels, (1, 2, 0)))
+    ax2.imshow(np.transpose(predictions, (1, 2, 0)))
     plt.show()
+
+
+def save_results(images, predictions):
+    for idx, img in enumerate(images):
+        pil_img = transforms.ToPILImage()(img)
+        img_path = os.path.join(args.save_dir, 'Results', 'img_' + str(idx))
+        if not os.path.exists(img_path):
+            open(img_path).close()
+        pil_img.save(img_path, 'PNG')
+    for idx, img in enumerate(predictions):
+        pil_img = transforms.ToPILImage()(img)
+        img_path = os.path.join(args.save_dir, 'results', 'pred_' + str(idx))
+        if not os.path.exists(img_path):
+            open(img_path).close()
+        pil_img.save(img_path, 'PNG')
+
+
+def get_parameters(num_classes):
+    model = model_utils.get_model(num_classes, pretrained=True)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    metric = IoU(num_classes=num_classes, ignore_index=None)
+    return model, criterion, optimizer, metric
+
+
+def dict_ious(class_encoding, ious):
+    result = dict()
+    for idx, (name, color) in enumerate(class_encoding.items()):
+        result[name] = ious[idx]
+    return result

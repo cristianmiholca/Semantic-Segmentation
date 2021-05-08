@@ -19,7 +19,7 @@ class CamVid(data.Dataset):
     # File containing color encoding for each class
     class_labels_file = 'class_dict.csv'
 
-    # TODO use class_dict here
+    # TODO create class encoding from class_dict.csv
     class_encoding = OrderedDict([
         ('Animal', (64, 128, 64)),
         ('Archway', (192, 0, 128)),
@@ -55,11 +55,11 @@ class CamVid(data.Dataset):
         ('Wall', (64, 192, 0))
     ])
 
-    def __init__(self, root_dir, mode='train', image_transform=None, label_transform=None) -> None:
+    def __init__(self, root_dir, mode='train', data_transform=None, label_transform=None) -> None:
         super().__init__()
         self.root_dir = root_dir
         self.mode = mode
-        self.transform = image_transform
+        self.data_transform = data_transform
         self.label_transform = label_transform
 
         if self.mode.lower() == 'train':
@@ -77,8 +77,6 @@ class CamVid(data.Dataset):
             test_dir_labeled = os.path.join(root_dir, self.test_folder_labeled)
             self.test_data = utils.get_files(test_dir)
             self.test_labels = utils.get_files(test_dir_labeled)
-            print(utils.get_files(test_dir))
-            print(utils.get_files(test_dir_labeled))
         else:
             raise RuntimeError("Unexpected dataset mode. Supported modes are: train, val and test.")
 
@@ -93,8 +91,8 @@ class CamVid(data.Dataset):
             raise RuntimeError("Unexpected dataset mode. Supported modes are: train, val and test.")
         img = Image.open(data_path)
         label = Image.open(label_path)
-        if self.transform is not None:
-            img = self.transform(img)
+        if self.data_transform is not None:
+            img = self.data_transform(img)
         if self.label_transform is not None:
             label = self.label_transform(label)
         label = utils.get_target_mask(label, self.class_encoding)
